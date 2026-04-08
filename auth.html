@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JC Automations — TikTok Authorization</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .container { text-align: center; padding: 40px 20px; max-width: 520px; width: 100%; }
+    .logo { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+    .subtitle { font-size: 15px; color: #666; margin-bottom: 48px; }
+
+    .card { background: #111; border: 1px solid #222; border-radius: 16px; padding: 32px; margin-bottom: 24px; text-align: left; }
+    .card h2 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+    .scope { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+    .scope-icon { font-size: 18px; margin-top: 2px; }
+    .scope-text { flex: 1; }
+    .scope-name { font-size: 14px; font-weight: 600; color: #fff; font-family: monospace; }
+    .scope-desc { font-size: 13px; color: #666; margin-top: 2px; }
+
+    .btn-tiktok { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 24px; background: #fff; color: #000; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btn-tiktok:hover { background: #f0f0f0; transform: translateY(-1px); }
+    .btn-tiktok svg { width: 24px; height: 24px; }
+
+    .status { display: none; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: left; }
+    .status.success { display: block; background: #0d2e1a; border: 1px solid #1a5c34; }
+    .status.error { display: block; background: #2e0d0d; border: 1px solid #5c1a1a; }
+    .status h3 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+    .status.success h3 { color: #4caf50; }
+    .status.error h3 { color: #f44336; }
+    .status p { font-size: 14px; color: #aaa; line-height: 1.6; }
+    .status .user-info { margin-top: 16px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 8px; }
+    .status .user-info p { font-size: 13px; color: #ccc; margin-bottom: 6px; }
+    .status .user-info span { color: #fff; font-weight: 600; }
+
+    .token-box { margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; word-break: break-all; font-family: monospace; font-size: 11px; color: #666; }
+    .token-box strong { display: block; color: #888; font-size: 11px; margin-bottom: 4px; }
+
+    .loading { display: none; flex-direction: column; align-items: center; gap: 16px; }
+    .loading.active { display: flex; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .back { color: #4d96ff; text-decoration: none; font-size: 13px; display: inline-block; margin-top: 24px; }
+    .back:hover { text-decoration: underline; }
+
+    .steps { display: flex; gap: 8px; margin-bottom: 32px; }
+    .step { flex: 1; padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; font-weight: 600; }
+    .step.active { background: #1a1a1a; color: #fff; border: 1px solid #333; }
+    .step.done { background: #0d2e1a; color: #4caf50; border: 1px solid #1a5c34; }
+    .step.pending { background: #0a0a0a; color: #444; border: 1px solid #1a1a1a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🤖</div>
+    <h1>JC Automations</h1>
+    <p class="subtitle">TikTok Integration Demo</p>
+
+    <div class="steps" id="steps">
+      <div class="step active" id="step1">1. Authorize</div>
+      <div class="step pending" id="step2">2. Callback</div>
+      <div class="step pending" id="step3">3. Connected</div>
+    </div>
+
+    <!-- Connect view -->
+    <div id="view-connect">
+      <div class="card">
+        <h2>Permissions requested</h2>
+        <div class="scope">
+          <div class="scope-icon">📤</div>
+          <div class="scope-text">
+            <div class="scope-name">video.upload</div>
+            <div class="scope-desc">Upload AI-generated videos to your TikTok account</div>
+          </div>
+        </div>
+        <div class="scope">
+          <div class="scope-icon">📢</div>
+          <div class="scope-text">
+            <div class="scope-name">video.publish</div>
+            <div class="scope-desc">Publish uploaded videos as posts on your behalf</div>
+          </div>
+        </div>
+        <div class="scope">
+          <div class="scope-icon">👤</div>
+          <div class="scope-text">
+            <div class="scope-name">user.info.basic</div>
+            <div class="scope-desc">Read your TikTok username and profile picture</div>
+          </div>
+        </div>
+      </div>
+
+      <a id="btn-connect" class="btn-tiktok" href="#">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.79 1.54V6.78a4.85 4.85 0 01-1.02-.09z"/>
+        </svg>
+        Connect with TikTok
+      </a>
+    </div>
+
+    <!-- Loading view -->
+    <div class="loading" id="view-loading">
+      <div class="spinner"></div>
+      <p style="color:#666; font-size:14px;">Exchanging authorization code...</p>
+    </div>
+
+    <!-- Success view -->
+    <div class="status success" id="view-success" style="display:none">
+      <h3>✅ Authorization successful</h3>
+      <p>JC Automations is now connected to your TikTok account and can publish AI-generated videos on your behalf.</p>
+      <div class="user-info" id="user-info"></div>
+      <div class="token-box" id="token-box"></div>
+    </div>
+
+    <!-- Error view -->
+    <div class="status error" id="view-error" style="display:none">
+      <h3>❌ Authorization failed</h3>
+      <p id="error-message">An error occurred during authorization.</p>
+    </div>
+
+    <a href="index.html" class="back">← Back to JC Automations</a>
+  </div>
+
+  <script>
+    const CLIENT_KEY = 'sbawsk466gjbx2khow';
+    const REDIRECT_URI = 'https://joca25.github.io/n8n_tiktok/auth.html';
+    const SCOPES = 'user.info.basic,video.upload,video.publish';
+
+    function generateState() {
+      return Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+
+    function generateCodeVerifier() {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      return btoa(String.fromCharCode(...array))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    async function generateCodeChallenge(verifier) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(verifier);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    async function initConnectButton() {
+      const state = generateState();
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+      sessionStorage.setItem('tiktok_state', state);
+      sessionStorage.setItem('tiktok_code_verifier', codeVerifier);
+
+      const params = new URLSearchParams({
+        client_key: CLIENT_KEY,
+        scope: SCOPES,
+        response_type: 'code',
+        redirect_uri: REDIRECT_URI,
+        state: state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
+      });
+
+      const url = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
+      document.getElementById('btn-connect').href = url;
+    }
+
+    function showView(name) {
+      ['connect', 'loading', 'success', 'error'].forEach(v => {
+        const el = document.getElementById('view-' + v);
+        if (v === 'loading') {
+          el.classList.toggle('active', v === name);
+        } else {
+          el.style.display = v === name ? 'block' : 'none';
+        }
+      });
+    }
+
+    function setStep(n) {
+      [1, 2, 3].forEach(i => {
+        const el = document.getElementById('step' + i);
+        el.className = 'step ' + (i < n ? 'done' : i === n ? 'active' : 'pending');
+      });
+    }
+
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      const error = params.get('error');
+
+      if (!code && !error) {
+        // No callback params — normal page load
+        showView('connect');
+        return;
+      }
+
+      setStep(2);
+      showView('loading');
+
+      if (error) {
+        setStep(2);
+        document.getElementById('error-message').textContent =
+          'TikTok returned an error: ' + (params.get('error_description') || error);
+        showView('error');
+        return;
+      }
+
+      const savedState = sessionStorage.getItem('tiktok_state');
+      const codeVerifier = sessionStorage.getItem('tiktok_code_verifier');
+
+      if (state !== savedState) {
+        document.getElementById('error-message').textContent = 'State mismatch — possible CSRF attack. Please try again.';
+        showView('error');
+        return;
+      }
+
+      // Show success — in a real backend you'd exchange the code for a token here
+      // For demo purposes we show the authorization code received
+      setStep(3);
+
+      document.getElementById('user-info').innerHTML = `
+        <p>Authorization code received successfully</p>
+        <p style="margin-top:8px">Status: <span>✅ Ready to publish videos</span></p>
+        <p>Scopes granted: <span>video.upload · video.publish · user.info.basic</span></p>
+      `;
+
+      document.getElementById('token-box').innerHTML = `
+        <strong>Authorization Code (for token exchange):</strong>
+        ${code}
+        <br><br>
+        <strong>Next step:</strong>
+        Exchange this code for an access token via the TikTok Token API.
+        In JC Automations this is handled automatically by the n8n workflow.
+      `;
+
+      showView('success');
+
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Init
+    initConnectButton();
+    handleCallback();
+  </script>
+</body>
+</html>
